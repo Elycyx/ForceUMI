@@ -197,15 +197,4 @@ class MyDevice(BaseDevice):
         return True
 ```
 
-## License
-
-MIT License
-
-## Contributing
-
-Issues and Pull Requests are welcome!
-
-## Contact
-
-For questions, please contact: [your-email@example.com]
 
