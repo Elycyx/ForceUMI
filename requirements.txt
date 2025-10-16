@@ -1,0 +1,23 @@
+# Core dependencies
+numpy>=1.21.0
+h5py>=3.7.0
+PyYAML>=6.0
+
+# GUI
+PyQt5>=5.15.0
+pyqtgraph>=0.12.0
+
+# Image processing
+opencv-python>=4.5.0
+Pillow>=9.0.0
+
+# Visualization
+matplotlib>=3.5.0
+
+# Utilities
+tqdm>=4.65.0
+
+# VR Tracking (optional - for pose sensor)
+# Install with: pip install git+https://github.com/Elycyx/PyTracker.git
+# pytracker
+

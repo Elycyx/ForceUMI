@@ -1,0 +1,33 @@
+# ForceUMI Configuration Example
+# Copy this file to config.yaml and modify as needed
+
+devices:
+  camera:
+    device_id: 0
+    width: 640
+    height: 480
+    fps: 30
+  
+  pose_sensor:
+    port: /dev/ttyUSB0
+    baudrate: 115200
+  
+  force_sensor:
+    port: /dev/ttyUSB1
+    baudrate: 115200
+
+data:
+  save_dir: ./data
+  compression: gzip
+  compression_level: 4
+  auto_save: true
+
+collector:
+  max_fps: 30.0
+
+gui:
+  window_title: "ForceUMI Data Collection"
+  image_display_size: [640, 480]
+  force_plot_length: 500
+  update_interval: 33  # milliseconds
+
