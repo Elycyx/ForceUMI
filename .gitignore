@@ -35,8 +35,8 @@ ENV/
 # Data files
 *.hdf5
 *.h5
-data/
-datasets/
+.data/
+.datasets/
 logs/
 
 # OS
