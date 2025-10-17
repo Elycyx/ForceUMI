@@ -128,12 +128,26 @@ class ForceSensor(BaseDevice):
             return None
         
         try:
-            # Read from PyForce (returns np.ndarray [fx, fy, fz, mx, my, mz])
-            force_data = self.sensor.read()
+            # Use get() method from PyForce which returns data with timestamp
+            # This ensures we get fresh data from the background thread
+            data = self.sensor.get()
             
-            if force_data is None:
-                self.logger.warning("Failed to read force data")
-                return None
+            if data is None or 'ft' not in data:
+                # Fallback to read() if get() fails
+                force_data = self.sensor.read()
+                if force_data is None:
+                    return None
+            else:
+                force_data = data['ft']
+            
+            # Debug: Print first few readings to check if data is changing
+            if not hasattr(self, '_debug_read_count'):
+                self._debug_read_count = 0
+            self._debug_read_count += 1
+            
+            if self._debug_read_count <= 10:
+                print(f"force_data {force_data}")
+                print(f"self.bias {self.bias}")
             
             # Apply bias correction
             corrected_data = force_data - self.bias
@@ -142,6 +156,8 @@ class ForceSensor(BaseDevice):
             
         except Exception as e:
             self.logger.error(f"Error reading from force sensor: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def get_with_timestamp(self) -> Optional[Dict[str, Any]]:
