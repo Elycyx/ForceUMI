@@ -12,6 +12,14 @@ All notable changes to the ForceUMI project will be documented in this file.
   - Velocity and acceleration data
   - See `docs/PYTRACKER_SETUP.md` for setup guide
 
+- **PyForce Integration**: ForceSensor now supports Sunrise force sensors via PyForce
+  - Real-time 6-axis force/torque data acquisition
+  - TCP/IP network communication
+  - Zero calibration and bias compensation
+  - Configurable sample rate (up to 1000 Hz)
+  - Sensor configuration (compute unit, decouple matrix)
+  - See `docs/PYFORCE_SETUP.md` for setup guide
+
 ### Changed
 - Simplified installation: now using `pip install -e .` for all dependencies
 - **BREAKING**: Updated state and action dimensions from 6D to 7D

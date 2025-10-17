@@ -21,3 +21,7 @@ tqdm>=4.65.0
 # Install with: pip install git+https://github.com/Elycyx/PyTracker.git
 # pytracker
 
+# Force Sensor (optional - for force sensor)
+# Install with: pip install git+https://github.com/Elycyx/PyForce.git
+# pyforce
+

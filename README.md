@@ -22,15 +22,23 @@ pip install -e .
 
 This will install the package in editable mode along with all dependencies.
 
-### Optional: VR Tracking Support
+### Optional: Hardware Support
 
-For VR tracker-based pose sensing (using PyTracker):
+**For VR tracker-based pose sensing** (using PyTracker):
 
 ```bash
 pip install git+https://github.com/Elycyx/PyTracker.git
 ```
 
 **Note**: Requires SteamVR and compatible VR hardware. See [PyTracker Setup Guide](docs/PYTRACKER_SETUP.md) for details.
+
+**For Sunrise force sensor** (using PyForce):
+
+```bash
+pip install git+https://github.com/Elycyx/PyForce.git
+```
+
+**Note**: Requires Sunrise (宇立) 6-axis force/torque sensor connected via TCP/IP. See [PyForce Setup Guide](docs/PYFORCE_SETUP.md) for details.
 
 ## Quick Start
 
