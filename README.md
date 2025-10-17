@@ -15,7 +15,7 @@ ForceUMI is a comprehensive data collection system for robotic arm devices, supp
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/forceumi.git
+git clone https://github.com/Elycyx/ForceUMI.git
 cd forceumi
 pip install -e .
 ```
