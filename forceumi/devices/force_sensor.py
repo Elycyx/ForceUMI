@@ -73,15 +73,15 @@ class ForceSensor(BaseDevice):
             time.sleep(0.5)
             self.logger.info("Data stream started and stabilized")
             
-            # Configure sample rate if specified
-            if self.sample_rate is not None:
-                self.sensor.set_sample_rate(self.sample_rate)
-                self.logger.info(f"Sample rate set to {self.sample_rate} Hz")
+            # # Configure sample rate if specified
+            # if self.sample_rate is not None:
+            #     self.sensor.set_sample_rate(self.sample_rate)
+            #     self.logger.info(f"Sample rate set to {self.sample_rate} Hz")
             
-            # Query sensor info
-            info = self.sensor.query_info()
-            if info:
-                self.logger.info(f"Force sensor info: {info}")
+            # # Query sensor info
+            # info = self.sensor.query_info()
+            # if info:
+            #     self.logger.info(f"Force sensor info: {info}")
             
             self._connected = True
             self.logger.info(f"Force sensor connected at {self.ip_addr}:{self.port}")
@@ -140,14 +140,14 @@ class ForceSensor(BaseDevice):
             else:
                 force_data = data['ft']
             
-            # Debug: Print first few readings to check if data is changing
-            if not hasattr(self, '_debug_read_count'):
-                self._debug_read_count = 0
-            self._debug_read_count += 1
+            # # Debug: Print first few readings to check if data is changing
+            # if not hasattr(self, '_debug_read_count'):
+            #     self._debug_read_count = 0
+            # self._debug_read_count += 1
             
-            if self._debug_read_count <= 10:
-                print(f"force_data {force_data}")
-                print(f"self.bias {self.bias}")
+            # if self._debug_read_count <= 10:
+            #     print(f"force_data {force_data}")
+            #     print(f"self.bias {self.bias}")
             
             # Apply bias correction
             corrected_data = force_data - self.bias
