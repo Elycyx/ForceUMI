@@ -3,31 +3,43 @@
 
 devices:
   camera:
-    device_id: 0
-    width: 640
-    height: 480
-    fps: 30
+    device_id: 0          # USB camera index (0 for first camera)
+    width: 640            # Image width in pixels
+    height: 480           # Image height in pixels
+    fps: 30               # Frames per second
   
   pose_sensor:
-    port: /dev/ttyUSB0
-    baudrate: 115200
+    # PyTracker (VR tracking) configuration
+    device_name: "tracker_1"     # VR tracker name (e.g., "tracker_1", "tracker_2")
+    config_file: null            # Optional: path to PyTracker config.json
+    gripper_port: null           # Optional: serial port for gripper sensor (e.g., "/dev/ttyUSB2")
+    
+    # If you have a custom PyTracker config.json with named devices:
+    # device_name: "arm_tracker"
+    # config_file: "pytracker_config.json"
   
   force_sensor:
-    port: /dev/ttyUSB1
-    baudrate: 115200
+    # PyForce (Sunrise sensor) configuration
+    ip_addr: "192.168.0.108"     # Force sensor IP address
+    port: 4008                   # Force sensor TCP port (default: 4008)
+    sample_rate: 100             # Optional: sampling rate in Hz (10-1000)
+    
+    # For different network setup:
+    # ip_addr: "192.168.1.100"
+    # sample_rate: 200
 
 data:
-  save_dir: ./data
-  compression: gzip
-  compression_level: 4
-  auto_save: true
+  save_dir: ./data              # Directory to save collected episodes
+  compression: gzip             # HDF5 compression algorithm (gzip, lzf, or null)
+  compression_level: 4          # Compression level for gzip (0-9)
+  auto_save: true               # Automatically save episodes when stopped
 
 collector:
-  max_fps: 30.0
+  max_fps: 30.0                 # Maximum collection frame rate
 
 gui:
   window_title: "ForceUMI Data Collection"
-  image_display_size: [640, 480]
-  force_plot_length: 500
-  update_interval: 33  # milliseconds
+  image_display_size: [640, 480]   # Display size for camera image
+  force_plot_length: 500           # Number of recent force data points to plot
+  update_interval: 33              # GUI update interval in milliseconds (~30 fps)
 

@@ -18,17 +18,21 @@ class Config:
         "devices": {
             "camera": {
                 "device_id": 0,
-                "width":480,
+                "width": 480,
                 "height": 480,
                 "fps": 20,
             },
             "pose_sensor": {
-                "port": "/dev/ttyUSB0",
-                "baudrate": 115200,
+                # PyTracker (VR tracking) configuration
+                "device_name": "tracker_1",  # VR tracker name in PyTracker
+                "config_file": None,  # Optional: path to PyTracker config.json
+                "gripper_port": None,  # Optional: serial port for gripper sensor
             },
             "force_sensor": {
-                "port": "/dev/ttyUSB1",
-                "baudrate": 115200,
+                # PyForce (Sunrise sensor) configuration
+                "ip_addr": "192.168.0.108",  # Force sensor IP address
+                "port": 4008,  # Force sensor TCP port
+                "sample_rate": 100,  # Optional: sampling rate in Hz (10-1000)
             },
         },
         "data": {
@@ -38,13 +42,13 @@ class Config:
             "auto_save": True,
         },
         "collector": {
-            "max_fps": 30.0,
+            "max_fps": 20.0,
         },
         "gui": {
             "window_title": "ForceUMI Data Collection",
             "image_display_size": [480, 480],
             "force_plot_length": 500,
-            "update_interval": 33,  # milliseconds (~30 fps)
+            "update_interval": 50,  # milliseconds (~30 fps)
         },
     }
     
