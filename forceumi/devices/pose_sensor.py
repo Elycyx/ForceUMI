@@ -124,11 +124,33 @@ class PoseSensor(BaseDevice):
         
         try:
             # Get pose from PyTracker (returns [x, y, z, yaw, pitch, roll])
-            pose_data = self.device.get_pose_euler()
+            # Try multiple times in case of transient failures
+            max_retries = 3
+            pose_data = None
+            
+            for attempt in range(max_retries):
+                pose_data = self.device.get_pose_euler()
+                
+                if pose_data is not None and len(pose_data) == 6:
+                    break
+                
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(0.01)  # Small delay before retry
             
             if pose_data is None or len(pose_data) != 6:
-                self.logger.warning("Failed to read valid pose data")
+                # Only warn every 100 failures to avoid log spam
+                if not hasattr(self, '_read_fail_count'):
+                    self._read_fail_count = 0
+                self._read_fail_count += 1
+                
+                if self._read_fail_count % 100 == 1:
+                    self.logger.warning(f"Failed to read valid pose data (failures: {self._read_fail_count})")
                 return None
+            
+            # Reset failure count on success
+            if hasattr(self, '_read_fail_count'):
+                self._read_fail_count = 0
             
             # Convert to [x, y, z, rx, ry, rz, gripper] format
             x, y, z, yaw, pitch, roll = pose_data
