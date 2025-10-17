@@ -17,7 +17,7 @@ class Config:
     DEFAULT_CONFIG = {
         "devices": {
             "camera": {
-                "device_id": 0,
+                "device_id": 3,
                 "width": 480,
                 "height": 480,
                 "fps": 20,

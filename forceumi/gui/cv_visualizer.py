@@ -209,7 +209,7 @@ class CVVisualizer:
         
         # Convert to image
         fig.canvas.draw()
-        plot_img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        plot_img = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
         plot_img = plot_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
         
         # Convert RGB to BGR
