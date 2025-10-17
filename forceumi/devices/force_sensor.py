@@ -4,6 +4,7 @@ Force Sensor Device Interface
 Handles 6-axis force/torque sensor for force data acquisition using PyForce.
 """
 
+import time
 import numpy as np
 from typing import Optional, Dict, Any
 from forceumi.devices.base import BaseDevice
@@ -67,6 +68,10 @@ class ForceSensor(BaseDevice):
                 self.logger.error("Failed to start data stream")
                 self.sensor.disconnect()
                 return False
+            
+            # Wait for stream to stabilize
+            time.sleep(0.5)
+            self.logger.info("Data stream started and stabilized")
             
             # Configure sample rate if specified
             if self.sample_rate is not None:
