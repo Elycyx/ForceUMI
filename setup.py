@@ -26,7 +26,7 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "forceumi-collect=forceumi.gui.main_window:main",
+            "forceumi-collect=forceumi.gui.cv_main_window:main",
         ],
     },
 )

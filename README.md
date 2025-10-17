@@ -6,7 +6,7 @@ ForceUMI is a comprehensive data collection system for robotic arm devices, supp
 
 - 📸 **Multi-modal Data Collection**: RGB fisheye camera, UMI pose (6DOF), action (delta pose), force (6-axis force sensor)
 - 💾 **HDF5 Storage**: Efficient data storage format with compression and fast access
-- 🎨 **Real-time Visualization**: Complete GUI interface with live image display, force curves, and pose data
+- 🎨 **Real-time Visualization**: OpenCV-based GUI with live image display, force curves, and pose data (no Qt conflicts)
 - 🔄 **Continuous Collection**: Episode-based mode with independent saving
 - ⚙️ **Flexible Configuration**: YAML configuration file support for different scenarios
 
@@ -45,7 +45,13 @@ pip install git+https://github.com/Elycyx/PyForce.git
 ### 1. Launch GUI Collection Program
 
 ```bash
-python forceumi/gui/main_window.py
+python -m forceumi.gui.cv_main_window
+```
+
+Or use the example launcher:
+
+```bash
+python examples/launch_gui.py
 ```
 
 Or use the command-line tool:
@@ -53,6 +59,13 @@ Or use the command-line tool:
 ```bash
 forceumi-collect
 ```
+
+**Keyboard Controls:**
+- `C` - Connect devices
+- `D` - Disconnect devices
+- `S` - Start collection
+- `E` - Stop/Save episode
+- `Q` - Quit application
 
 ### 2. Programmatic Usage
 
@@ -162,11 +175,10 @@ forceumi/
 │   │   ├── __init__.py
 │   │   ├── hdf5_manager.py
 │   │   └── episode.py
-│   ├── gui/              # Graphical interface
+│   ├── gui/              # Graphical interface (OpenCV-based)
 │   │   ├── __init__.py
-│   │   ├── main_window.py
-│   │   ├── widgets.py
-│   │   └── visualizers.py
+│   │   ├── cv_main_window.py
+│   │   └── cv_visualizer.py
 │   ├── collector.py      # Collection manager
 │   └── config.py         # Configuration management
 ├── examples/             # Example scripts
@@ -204,5 +216,28 @@ class MyDevice(BaseDevice):
         # Return connection status
         return True
 ```
+
+## GUI System
+
+The system uses **OpenCV's highgui** module for visualization instead of PyQt to avoid Qt backend conflicts between OpenCV and PyQt. This provides:
+
+- ✅ **No Qt Conflicts**: Uses OpenCV's built-in Qt backend
+- ✅ **Lightweight**: Minimal dependencies
+- ✅ **Cross-platform**: Works on Linux, macOS, and Windows
+- ✅ **Keyboard Control**: Simple keyboard shortcuts for all operations
+
+### GUI Windows
+
+1. **Main View**: Displays real-time camera feed with status overlay
+2. **Force Data**: Shows force and torque plots
+3. **State Data**: Displays current pose and gripper state
+4. **Control Panel**: Shows status and keyboard shortcuts
+
+### Technical Details
+
+- Uses `cv2.imshow()` for image display
+- Uses `matplotlib` with `Agg` backend for plot rendering
+- All plots are rendered to images and displayed via OpenCV
+- Event loop uses `cv2.waitKey()` for keyboard input
 
 

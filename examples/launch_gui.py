@@ -1,17 +1,17 @@
 """
 Launch GUI Example
 
-Simple script to launch the GUI with optional config file.
+Simple script to launch the OpenCV-based GUI with optional config file.
 """
 
 import sys
 from pathlib import Path
-from forceumi.gui.main_window import main as gui_main
+from forceumi.gui.cv_main_window import main as gui_main
 
 
 def main():
     """Launch GUI"""
-    print("Launching ForceUMI Data Collection GUI...")
+    print("Launching ForceUMI Data Collection GUI (OpenCV-based)...")
     
     # Check for config file
     config_files = ["config.yaml", "config.yml", "config.json"]

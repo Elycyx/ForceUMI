@@ -2,6 +2,37 @@
 
 All notable changes to the ForceUMI project will be documented in this file.
 
+## [0.2.0] - 2025-10-17
+
+### Changed (BREAKING)
+- **GUI Migration to OpenCV**: Migrated from PyQt5 to OpenCV highgui to avoid Qt conflicts
+  - Removed PyQt5 and pyqtgraph dependencies
+  - New OpenCV-based GUI with keyboard controls
+  - Added `cv_main_window.py` and `cv_visualizer.py`
+  - Removed old PyQt files: `main_window.py`, `widgets.py`, and `visualizers.py`
+
+### Added
+- **OpenCV-based GUI**: New lightweight GUI using cv2.imshow
+  - Four windows: Main View, Force Data, State Data, Control Panel
+  - Keyboard shortcuts: C (connect), D (disconnect), S (start), E (stop), Q (quit)
+  - Real-time status overlays
+  - matplotlib-based plot rendering
+  - No Qt backend conflicts
+
+### Removed
+- PyQt5 dependency (resolved Qt conflicts with opencv-python)
+- pyqtgraph dependency
+
+### Updated
+- `requirements.txt`: Removed PyQt5 and pyqtgraph
+- `setup.py`: Updated entry point to use cv_main_window
+- `examples/launch_gui.py`: Now launches OpenCV GUI
+- `README.md`: Updated with OpenCV GUI information and keyboard controls
+
+### Notes
+- All core functionality (data collection, devices, HDF5 storage) unchanged
+- Configuration file format remains the same
+
 ## [0.1.0] - 2025-10-16
 
 ### Added
