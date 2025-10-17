@@ -12,6 +12,10 @@ import matplotlib.pyplot as plt
 from typing import Optional, Dict, Any
 from collections import deque
 import time
+import warnings
+
+# Suppress matplotlib warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='matplotlib')
 
 
 class CVVisualizer:
@@ -193,6 +197,9 @@ class CVVisualizer:
             ax1.set_ylabel('Force (N)')
             ax1.legend(loc='upper right', fontsize=8)
             ax1.grid(True, alpha=0.3)
+        else:
+            ax1.text(0.5, 0.5, 'No Force Data', ha='center', va='center', transform=ax1.transAxes)
+            ax1.set_ylabel('Force (N)')
         
         # Torque plot
         if len(self.force_buffer["mx"]) > 0:
@@ -204,15 +211,24 @@ class CVVisualizer:
             ax2.set_ylabel('Torque (Nm)')
             ax2.legend(loc='upper right', fontsize=8)
             ax2.grid(True, alpha=0.3)
+        else:
+            ax2.text(0.5, 0.5, 'No Torque Data', ha='center', va='center', transform=ax2.transAxes)
+            ax2.set_xlabel('Samples')
+            ax2.set_ylabel('Torque (Nm)')
         
         plt.tight_layout()
         
         # Convert to image
         fig.canvas.draw()
-        plot_img = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
-        plot_img = plot_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
         
-        # Convert RGB to BGR
+        # Get the image as RGB array
+        buf = fig.canvas.buffer_rgba()
+        plot_img = np.asarray(buf)
+        
+        # Convert RGBA to RGB
+        plot_img = plot_img[:, :, :3]
+        
+        # Convert RGB to BGR for OpenCV
         plot_img_bgr = cv2.cvtColor(plot_img, cv2.COLOR_RGB2BGR)
         
         # Resize to fit window
