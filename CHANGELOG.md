@@ -2,6 +2,24 @@
 
 All notable changes to the ForceUMI project will be documented in this file.
 
+## [0.3.1] - 2025-10-18
+
+### Added
+- **Per-Sensor Timestamp Recording**:
+  - Each sensor (camera, pose, force) now has its own timestamp
+  - Eliminates sequential reading delay errors
+  - HDF5 files now contain `timestamp_camera`, `timestamp_pose`, `timestamp_force`
+  - Backward compatible: old episodes still work with main `timestamp`
+- **Timestamp Analysis Tool** (`analyze_timestamps.py`):
+  - Diagnose time synchronization quality
+  - Visualize inter-sensor delays
+  - Calculate frame intervals and jitter
+  - Generate detailed timing reports and plots
+
+### Improved
+- **Data Collection**: Individual timestamp per sensor for accurate synchronization
+- **Time Accuracy**: Sub-millisecond precision for each modality
+
 ## [0.3.0] - 2025-10-18
 
 ### Changed (BREAKING)

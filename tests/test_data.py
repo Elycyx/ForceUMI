@@ -29,7 +29,8 @@ class TestEpisode:
         action = np.random.randn(7).astype(np.float32)
         force = np.random.randn(6).astype(np.float32)
         
-        episode.add_frame(image=image, state=state, action=action, force=force)
+        episode.add_frame(image=image, state=state, action=action, force=force,
+                         timestamp_camera=1.0, timestamp_pose=1.01, timestamp_force=1.02)
         
         assert len(episode) == 1
         assert len(episode.images) == 1
@@ -37,6 +38,9 @@ class TestEpisode:
         assert len(episode.actions) == 1
         assert len(episode.forces) == 1
         assert len(episode.timestamps) == 1
+        assert len(episode.timestamps_camera) == 1
+        assert len(episode.timestamps_pose) == 1
+        assert len(episode.timestamps_force) == 1
     
     def test_finalize(self):
         """Test episode finalization"""

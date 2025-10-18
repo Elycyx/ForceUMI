@@ -20,7 +20,7 @@ class Config:
                 "device_id": 6,
                 "width": 640,
                 "height": 480,
-                "fps": 20,
+                "fps": 30,
             },
             "pose_sensor": {
                 # PyTracker (VR tracking) configuration
@@ -32,7 +32,7 @@ class Config:
                 # PyForce (Sunrise sensor) configuration
                 "ip_addr": "192.168.0.108",  # Force sensor IP address
                 "port": 4008,  # Force sensor TCP port
-                "sample_rate": 50,  # Optional: sampling rate in Hz (10-1000)
+                "sample_rate": 30,  # Optional: sampling rate in Hz (10-1000)
             },
         },
         "data": {
@@ -42,14 +42,14 @@ class Config:
             "auto_save": True,
         },
         "collector": {
-            "max_fps": 20.0,
+            "max_fps": 30.0,
             "warmup_duration": 2.0,  # 预热时间（秒），在正式采集前读取但不保存数据
         },
         "gui": {
             "window_title": "ForceUMI Data Collection",
             "image_display_size": [640, 480],
             "force_plot_length": 500,
-            "update_interval": 50,  # milliseconds (~20 fps)
+            "update_interval": 33,  # milliseconds (~30 fps)
         },
     }
     

@@ -20,6 +20,11 @@ class Episode:
     forces: List[np.ndarray] = field(default_factory=list)
     timestamps: List[float] = field(default_factory=list)
     
+    # Per-sensor timestamps for better synchronization
+    timestamps_camera: List[float] = field(default_factory=list)
+    timestamps_pose: List[float] = field(default_factory=list)
+    timestamps_force: List[float] = field(default_factory=list)
+    
     metadata: Dict[str, Any] = field(default_factory=dict)
     
     start_time: Optional[float] = None
@@ -36,7 +41,10 @@ class Episode:
         state: Optional[np.ndarray] = None,
         action: Optional[np.ndarray] = None,
         force: Optional[np.ndarray] = None,
-        timestamp: Optional[float] = None
+        timestamp: Optional[float] = None,
+        timestamp_camera: Optional[float] = None,
+        timestamp_pose: Optional[float] = None,
+        timestamp_force: Optional[float] = None
     ):
         """
         Add a frame of data to the episode
@@ -47,19 +55,25 @@ class Episode:
             action: 7D action [dx, dy, dz, drx, dry, drz, gripper]
                    Note: gripper is always absolute value
             force: 6-axis force [fx, fy, fz, mx, my, mz]
-            timestamp: Timestamp (defaults to current time)
+            timestamp: Main timestamp (defaults to current time)
+            timestamp_camera: Camera-specific timestamp
+            timestamp_pose: Pose sensor-specific timestamp
+            timestamp_force: Force sensor-specific timestamp
         """
         if timestamp is None:
             timestamp = time.time()
         
         if image is not None:
             self.images.append(image)
+            self.timestamps_camera.append(timestamp_camera if timestamp_camera is not None else timestamp)
         if state is not None:
             self.states.append(state)
+            self.timestamps_pose.append(timestamp_pose if timestamp_pose is not None else timestamp)
         if action is not None:
             self.actions.append(action)
         if force is not None:
             self.forces.append(force)
+            self.timestamps_force.append(timestamp_force if timestamp_force is not None else timestamp)
         
         self.timestamps.append(timestamp)
     
@@ -83,7 +97,7 @@ class Episode:
         Returns:
             dict: Episode data as numpy arrays
         """
-        return {
+        data = {
             "image": np.array(self.images) if self.images else np.array([]),
             "state": np.array(self.states) if self.states else np.array([]),
             "action": np.array(self.actions) if self.actions else np.array([]),
@@ -91,6 +105,16 @@ class Episode:
             "timestamp": np.array(self.timestamps) if self.timestamps else np.array([]),
             "metadata": self.metadata,
         }
+        
+        # Add per-sensor timestamps if available
+        if self.timestamps_camera:
+            data["timestamp_camera"] = np.array(self.timestamps_camera)
+        if self.timestamps_pose:
+            data["timestamp_pose"] = np.array(self.timestamps_pose)
+        if self.timestamps_force:
+            data["timestamp_force"] = np.array(self.timestamps_force)
+        
+        return data
     
     def clear(self):
         """Clear all data from episode"""
@@ -99,6 +123,9 @@ class Episode:
         self.actions.clear()
         self.forces.clear()
         self.timestamps.clear()
+        self.timestamps_camera.clear()
+        self.timestamps_pose.clear()
+        self.timestamps_force.clear()
         self.metadata.clear()
         self.start_time = time.time()
         self.end_time = None

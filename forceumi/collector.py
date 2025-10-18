@@ -223,19 +223,27 @@ class DataCollector:
                     self._warming_up = False
                     self.logger.info("Warmup complete, starting data collection")
             
-            # Read from all devices
+            # Read from all devices with individual timestamps
             frame_data = {}
-            timestamp = time.time()
+            timestamp = time.time()  # Main loop timestamp
             
+            # Camera with timestamp
+            timestamp_camera = None
             if self.camera and self.camera.is_connected():
                 image = self.camera.read()
+                timestamp_camera = time.time()
                 if image is not None:
                     frame_data["image"] = image
+                    frame_data["timestamp_camera"] = timestamp_camera
             
+            # Pose sensor with timestamp
+            timestamp_pose = None
             if self.pose_sensor and self.pose_sensor.is_connected():
                 state = self.pose_sensor.read()
+                timestamp_pose = time.time()
                 if state is not None:
                     frame_data["state"] = state
+                    frame_data["timestamp_pose"] = timestamp_pose
                     
                     # Compute action as relative pose from first frame (only after warmup)
                     if not self._warming_up:
@@ -255,10 +263,14 @@ class DataCollector:
                             frame_data["action"] = action
                     # During warmup, don't set action (will not be saved anyway)
             
+            # Force sensor with timestamp
+            timestamp_force = None
             if self.force_sensor and self.force_sensor.is_connected():
                 force = self.force_sensor.read()
+                timestamp_force = time.time()
                 if force is not None:
                     frame_data["force"] = force
+                    frame_data["timestamp_force"] = timestamp_force
             
             # Add frame to episode (only after warmup)
             if frame_data:
@@ -269,7 +281,10 @@ class DataCollector:
                         state=frame_data.get("state"),
                         action=frame_data.get("action"),
                         force=frame_data.get("force"),
-                        timestamp=timestamp
+                        timestamp=timestamp,
+                        timestamp_camera=frame_data.get("timestamp_camera"),
+                        timestamp_pose=frame_data.get("timestamp_pose"),
+                        timestamp_force=frame_data.get("timestamp_force")
                     )
                 
                 # Always put data in queue for GUI updates (even during warmup)

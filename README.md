@@ -139,19 +139,38 @@ The replay window shows:
 - **Force/Torque plots** showing the 6-axis sensor data history
 - **State/Action plots** showing pose and motion data
 
+### 5. Analyze Time Synchronization
+
+Check the quality of time synchronization in your collected data:
+
+```bash
+python analyze_timestamps.py data/episode_20250101_120000.hdf5
+```
+
+This tool provides:
+- Per-sensor frame rates and intervals
+- Inter-sensor delay analysis
+- Timing jitter statistics
+- Visualization plots of timestamp quality
+
 ## Data Format
 
 Each episode is saved as an HDF5 file with the following structure:
 
 ```
 episode_<timestamp>.hdf5
-├── /image           # shape: (N, H, W, 3), dtype: uint8
-├── /state           # shape: (N, 7), dtype: float32
-├── /action          # shape: (N, 7), dtype: float32
-├── /force           # shape: (N, 6), dtype: float32
-├── /timestamp       # shape: (N,), dtype: float64
-└── /metadata        # attributes: fps, duration, task_description, etc.
+├── /image              # shape: (N, H, W, 3), dtype: uint8
+├── /state              # shape: (N, 7), dtype: float32
+├── /action             # shape: (N, 7), dtype: float32
+├── /force              # shape: (N, 6), dtype: float32
+├── /timestamp          # shape: (N,), dtype: float64 (main loop timestamp)
+├── /timestamp_camera   # shape: (N,), dtype: float64 (camera-specific)
+├── /timestamp_pose     # shape: (N,), dtype: float64 (pose-specific)
+├── /timestamp_force    # shape: (N,), dtype: float64 (force-specific)
+└── /metadata           # attributes: fps, duration, task_description, etc.
 ```
+
+**Note on Timestamps**: Each sensor has its own timestamp recorded immediately after data acquisition. This provides accurate temporal information for each modality and enables precise time synchronization analysis.
 
 ### Data Definitions:
 
