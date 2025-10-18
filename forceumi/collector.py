@@ -237,20 +237,23 @@ class DataCollector:
                 if state is not None:
                     frame_data["state"] = state
                     
-                    # Compute action as relative pose from first frame
-                    if self._reference_pose is None:
-                        # First valid frame: set as reference and action is zero pose
-                        self._reference_pose = state.copy()
-                        # Action for first frame is zero (tracker at reference frame)
-                        action = state.copy()
-                        action[:6] = 0.0  # Zero position and orientation
-                        # Keep gripper value (always absolute)
-                        frame_data["action"] = action
-                        self.logger.info(f"Reference pose set: {self._reference_pose[:6]}")
-                    else:
-                        # Subsequent frames: compute relative pose
-                        action = relative_pose(state, self._reference_pose, preserve_gripper=True)
-                        frame_data["action"] = action
+                    # Compute action as relative pose from first frame (only after warmup)
+                    if not self._warming_up:
+                        # Warmup complete, can set reference and compute action
+                        if self._reference_pose is None:
+                            # First valid frame after warmup: set as reference
+                            self._reference_pose = state.copy()
+                            # Action for first frame is zero (tracker at reference frame)
+                            action = state.copy()
+                            action[:6] = 0.0  # Zero position and orientation
+                            # Keep gripper value (always absolute)
+                            frame_data["action"] = action
+                            self.logger.info(f"Reference pose set (after warmup): {self._reference_pose[:6]}")
+                        else:
+                            # Subsequent frames: compute relative pose
+                            action = relative_pose(state, self._reference_pose, preserve_gripper=True)
+                            frame_data["action"] = action
+                    # During warmup, don't set action (will not be saved anyway)
             
             if self.force_sensor and self.force_sensor.is_connected():
                 force = self.force_sensor.read()

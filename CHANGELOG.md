@@ -23,6 +23,7 @@ All notable changes to the ForceUMI project will be documented in this file.
 - **Sensor Warmup Feature**:
   - Configurable warmup period (default 2 seconds) before data collection
   - Ensures sensor readings stabilize before saving data
+  - Reference pose (for action calculation) set after warmup completes
   - Visual warmup indicator in GUI
   - Configuration: `collector.warmup_duration`
 
