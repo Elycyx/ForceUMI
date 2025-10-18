@@ -204,12 +204,18 @@ The `get_frame()` method returns a dictionary with the following structure:
 You can customize the replay visualization by providing a configuration dict:
 
 ```python
+# Option 1: Use a dict directly
 config = {
     'image_display_size': (800, 600),  # Image window size
     'plot_history': 300,                # Number of frames in plots
 }
 
 window = ReplayWindow('data/episode.hdf5', config=config)
+
+# Option 2: Load from config file
+from forceumi.config import Config
+config_obj = Config('config.yaml')
+window = ReplayWindow('data/episode.hdf5', config=config_obj.config)
 ```
 
 ## Troubleshooting

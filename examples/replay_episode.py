@@ -27,7 +27,7 @@ if __name__ == '__main__':
     sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from forceumi.replay import ReplayWindow
-from forceumi.config import ConfigManager
+from forceumi.config import Config
 
 
 def main():
@@ -59,7 +59,8 @@ def main():
     if len(sys.argv) > 3 and sys.argv[2] == '--config':
         config_path = sys.argv[3]
         logger.info(f"Loading config from: {config_path}")
-        config = ConfigManager.load_config(config_path)
+        config_obj = Config(config_path)
+        config = config_obj.config
     
     # Create and run replay window
     logger.info(f"Loading episode: {episode_path}")

@@ -392,8 +392,9 @@ def main():
     # Load config if provided
     config = None
     if args.config:
-        from forceumi.config import ConfigManager
-        config = ConfigManager.load_config(args.config)
+        from forceumi.config import Config
+        config_obj = Config(args.config)
+        config = config_obj.config
     
     # Create and run replay window
     window = ReplayWindow(args.episode, config)
