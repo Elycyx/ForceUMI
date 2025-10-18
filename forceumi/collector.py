@@ -13,6 +13,7 @@ from typing import Optional, Dict, Any, Callable
 
 from forceumi.devices import Camera, PoseSensor, ForceSensor
 from forceumi.data import Episode, HDF5Manager
+from forceumi.utils.transforms import relative_pose
 
 
 class DataCollector:
@@ -58,6 +59,9 @@ class DataCollector:
         self._warmup_start_time = None
         self._collection_thread = None
         self._stop_event = threading.Event()
+        
+        # Reference pose for action calculation (first valid frame)
+        self._reference_pose = None
         
         # Data queue for thread communication
         self._data_queue = queue.Queue(maxsize=100)
@@ -128,6 +132,9 @@ class DataCollector:
         self.current_episode = Episode()
         if metadata:
             self.current_episode.metadata.update(metadata)
+        
+        # Reset reference pose for new episode
+        self._reference_pose = None
         
         # Start collection thread with warmup
         self._stop_event.clear()
@@ -229,8 +236,21 @@ class DataCollector:
                 state = self.pose_sensor.read()
                 if state is not None:
                     frame_data["state"] = state
-                    # Use state for action (could be computed differently)
-                    frame_data["action"] = state.copy()
+                    
+                    # Compute action as relative pose from first frame
+                    if self._reference_pose is None:
+                        # First valid frame: set as reference and action is zero pose
+                        self._reference_pose = state.copy()
+                        # Action for first frame is zero (tracker at reference frame)
+                        action = state.copy()
+                        action[:6] = 0.0  # Zero position and orientation
+                        # Keep gripper value (always absolute)
+                        frame_data["action"] = action
+                        self.logger.info(f"Reference pose set: {self._reference_pose[:6]}")
+                    else:
+                        # Subsequent frames: compute relative pose
+                        action = relative_pose(state, self._reference_pose, preserve_gripper=True)
+                        frame_data["action"] = action
             
             if self.force_sensor and self.force_sensor.is_connected():
                 force = self.force_sensor.read()

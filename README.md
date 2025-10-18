@@ -119,14 +119,34 @@ Each episode is saved as an HDF5 file with the following structure:
 ```
 episode_<timestamp>.hdf5
 ├── /image           # shape: (N, H, W, 3), dtype: uint8
-├── /state           # shape: (N, 7), dtype: float32, [x,y,z,rx,ry,rz,gripper]
-├── /action          # shape: (N, 7), dtype: float32, [dx,dy,dz,drx,dry,drz,gripper]
-├── /force           # shape: (N, 6), dtype: float32, [fx,fy,fz,mx,my,mz]
+├── /state           # shape: (N, 7), dtype: float32
+├── /action          # shape: (N, 7), dtype: float32
+├── /force           # shape: (N, 6), dtype: float32
 ├── /timestamp       # shape: (N,), dtype: float64
 └── /metadata        # attributes: fps, duration, task_description, etc.
-
-Note: gripper value is always absolute (not delta)
 ```
+
+### Data Definitions:
+
+- **state**: Tracker pose relative to station (base) coordinate system
+  - Format: `[x, y, z, rx, ry, rz, gripper]`
+  - Position (x,y,z) in meters
+  - Orientation (rx,ry,rz) as Euler angles in radians
+  - Gripper value (0.0 = closed, 1.0 = open, always absolute)
+
+- **action**: Tracker pose relative to the first frame's coordinate system
+  - Format: `[x, y, z, rx, ry, rz, gripper]`
+  - Position and orientation are relative to the first frame
+  - First frame action is `[0, 0, 0, 0, 0, 0, gripper]`
+  - Subsequent frames express the pose transformation from the first frame
+  - Gripper value is always absolute (same as state)
+  
+- **force**: 6-axis force/torque data
+  - Format: `[fx, fy, fz, mx, my, mz]`
+  - Forces (fx,fy,fz) in Newtons
+  - Torques (mx,my,mz) in Newton-meters
+
+**Note**: The gripper value in both state and action is always absolute (not delta)
 
 ## Configuration File
 
@@ -179,6 +199,9 @@ forceumi/
 │   │   ├── __init__.py
 │   │   ├── cv_main_window.py
 │   │   └── cv_visualizer.py
+│   ├── utils/            # Utility functions
+│   │   ├── __init__.py
+│   │   └── transforms.py # Coordinate transformations
 │   ├── collector.py      # Collection manager
 │   └── config.py         # Configuration management
 ├── examples/             # Example scripts

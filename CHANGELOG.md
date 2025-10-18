@@ -2,6 +2,48 @@
 
 All notable changes to the ForceUMI project will be documented in this file.
 
+## [0.3.0] - 2025-10-18
+
+### Changed (BREAKING)
+- **Action Coordinate System**: Action data now represents pose relative to first frame instead of absolute pose
+  - State: Still represents tracker pose relative to station (base) coordinate system
+  - Action: Now represents tracker pose relative to the first frame's coordinate system
+  - First frame action is `[0, 0, 0, 0, 0, 0, gripper]`
+  - Subsequent frames express relative transformation from first frame
+  - Gripper value remains absolute in both state and action
+
+### Added
+- **Coordinate Transformation Utilities** (`forceumi/utils/transforms.py`):
+  - Euler angle <-> rotation matrix conversions
+  - Quaternion <-> rotation matrix conversions
+  - Pose transformation and relative pose calculation
+  - Batch processing support
+  - Example: `examples/test_transforms.py`
+
+- **Sensor Warmup Feature**:
+  - Configurable warmup period (default 2 seconds) before data collection
+  - Ensures sensor readings stabilize before saving data
+  - Visual warmup indicator in GUI
+  - Configuration: `collector.warmup_duration`
+
+- **Data Quality Verification** (`verify_data_quality.py`):
+  - Analyze timestamp uniformity
+  - Calculate actual FPS and jitter
+  - Detect frame interval outliers
+  - Verify data shapes
+
+### Improved
+- **Pose Sensor Reading**: 
+  - Added retry mechanism for transient failures
+  - **Automatic unit conversion**: Angles converted from degrees (PyTracker output) to radians (dataset format)
+- **Force Sensor Reading**: Uses `get()` method for fresher data from background thread
+- **GUI Display**: Shows warmup progress with countdown timer
+
+### Updated
+- `README.md`: Updated data format documentation with new action definition
+- `forceumi/collector.py`: Implements relative pose calculation for action
+- Project structure: Added `utils/` module for coordinate transformations
+
 ## [0.2.0] - 2025-10-17
 
 ### Changed (BREAKING)

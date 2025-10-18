@@ -155,12 +155,18 @@ class PoseSensor(BaseDevice):
             # Convert to [x, y, z, rx, ry, rz, gripper] format
             x, y, z, yaw, pitch, roll = pose_data
             
+            # Convert angles from degrees to radians
+            # PyTracker returns angles in degrees, but we want radians for the dataset
+            roll_rad = np.deg2rad(roll)
+            pitch_rad = np.deg2rad(pitch)
+            yaw_rad = np.deg2rad(yaw)
+            
             # TODO: Read gripper value from serial port
             # For now, use the stored gripper value
             gripper = self._read_gripper()
             
-            # Create 7D state array
-            state = np.array([x, y, z, roll, pitch, yaw, gripper], dtype=np.float32)
+            # Create 7D state array with angles in radians
+            state = np.array([x, y, z, roll_rad, pitch_rad, yaw_rad, gripper], dtype=np.float32)
             
             return state
             
@@ -280,18 +286,19 @@ class PoseSensor(BaseDevice):
             # Use PyTracker's built-in sampling
             data_buffer = self.device.sample(num_samples, sample_rate)
             
-            # Convert to our 7D format
+            # Convert to our 7D format with angles in radians
             samples = []
             for i in range(len(data_buffer.time)):
                 x = data_buffer.x[i]
                 y = data_buffer.y[i]
                 z = data_buffer.z[i]
-                roll = data_buffer.roll[i]
-                pitch = data_buffer.pitch[i]
-                yaw = data_buffer.yaw[i]
+                # Convert angles from degrees to radians
+                roll_rad = np.deg2rad(data_buffer.roll[i])
+                pitch_rad = np.deg2rad(data_buffer.pitch[i])
+                yaw_rad = np.deg2rad(data_buffer.yaw[i])
                 gripper = self._read_gripper()  # Same gripper for all samples
                 
-                samples.append([x, y, z, roll, pitch, yaw, gripper])
+                samples.append([x, y, z, roll_rad, pitch_rad, yaw_rad, gripper])
             
             return np.array(samples, dtype=np.float32)
             
