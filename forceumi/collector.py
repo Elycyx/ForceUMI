@@ -25,7 +25,8 @@ class DataCollector:
         force_sensor: Optional[ForceSensor] = None,
         save_dir: str = "./data",
         auto_save: bool = True,
-        max_fps: float = 30.0
+        max_fps: float = 30.0,
+        warmup_duration: float = 2.0
     ):
         """
         Initialize data collector
@@ -37,6 +38,7 @@ class DataCollector:
             save_dir: Directory to save episodes
             auto_save: Whether to automatically save episodes
             max_fps: Maximum collection framerate
+            warmup_duration: Warmup duration in seconds before actual collection starts
         """
         self.camera = camera
         self.pose_sensor = pose_sensor
@@ -44,6 +46,7 @@ class DataCollector:
         self.save_dir = Path(save_dir)
         self.auto_save = auto_save
         self.max_fps = max_fps
+        self.warmup_duration = warmup_duration
         
         self.hdf5_manager = HDF5Manager()
         self.current_episode = None
@@ -51,6 +54,8 @@ class DataCollector:
         
         # Collection state
         self._collecting = False
+        self._warming_up = False
+        self._warmup_start_time = None
         self._collection_thread = None
         self._stop_event = threading.Event()
         
@@ -124,13 +129,15 @@ class DataCollector:
         if metadata:
             self.current_episode.metadata.update(metadata)
         
-        # Start collection thread
+        # Start collection thread with warmup
         self._stop_event.clear()
         self._collecting = True
+        self._warming_up = True
+        self._warmup_start_time = time.time()
         self._collection_thread = threading.Thread(target=self._collection_loop, daemon=True)
         self._collection_thread.start()
         
-        self.logger.info("Episode collection started")
+        self.logger.info(f"Episode collection started (warmup: {self.warmup_duration}s)")
         return True
     
     def stop_episode(self, save: Optional[bool] = None) -> Optional[str]:
@@ -202,6 +209,13 @@ class DataCollector:
         while not self._stop_event.is_set():
             start_time = time.time()
             
+            # Check if warmup period is complete
+            if self._warming_up:
+                elapsed_warmup = time.time() - self._warmup_start_time
+                if elapsed_warmup >= self.warmup_duration:
+                    self._warming_up = False
+                    self.logger.info("Warmup complete, starting data collection")
+            
             # Read from all devices
             frame_data = {}
             timestamp = time.time()
@@ -223,17 +237,21 @@ class DataCollector:
                 if force is not None:
                     frame_data["force"] = force
             
-            # Add frame to episode
+            # Add frame to episode (only after warmup)
             if frame_data:
-                self.current_episode.add_frame(
-                    image=frame_data.get("image"),
-                    state=frame_data.get("state"),
-                    action=frame_data.get("action"),
-                    force=frame_data.get("force"),
-                    timestamp=timestamp
-                )
+                if not self._warming_up:
+                    # Only save data after warmup is complete
+                    self.current_episode.add_frame(
+                        image=frame_data.get("image"),
+                        state=frame_data.get("state"),
+                        action=frame_data.get("action"),
+                        force=frame_data.get("force"),
+                        timestamp=timestamp
+                    )
                 
-                # Put data in queue for GUI updates
+                # Always put data in queue for GUI updates (even during warmup)
+                # Add warmup flag to frame data
+                frame_data["_warming_up"] = self._warming_up
                 try:
                     self._data_queue.put_nowait(frame_data)
                 except queue.Full:
@@ -285,6 +303,28 @@ class DataCollector:
         """
         return self._collecting
     
+    def is_warming_up(self) -> bool:
+        """
+        Check if currently in warmup phase
+        
+        Returns:
+            bool: True if warming up
+        """
+        return self._warming_up
+    
+    def get_warmup_progress(self) -> float:
+        """
+        Get warmup progress
+        
+        Returns:
+            float: Progress from 0.0 to 1.0, or 0.0 if not warming up
+        """
+        if not self._warming_up or self._warmup_start_time is None:
+            return 0.0
+        
+        elapsed = time.time() - self._warmup_start_time
+        return min(elapsed / self.warmup_duration, 1.0)
+    
     def get_episode_stats(self) -> Dict[str, Any]:
         """
         Get statistics for current episode
@@ -295,11 +335,19 @@ class DataCollector:
         if self.current_episode is None:
             return {}
         
-        return {
+        stats = {
             "num_frames": len(self.current_episode),
             "duration": time.time() - self.current_episode.start_time if self.current_episode.start_time else 0,
             "metadata": self.current_episode.metadata,
+            "warming_up": self._warming_up,
         }
+        
+        # Add warmup progress if in warmup phase
+        if self._warming_up:
+            stats["warmup_progress"] = self.get_warmup_progress()
+            stats["warmup_remaining"] = max(0, self.warmup_duration - (time.time() - self._warmup_start_time))
+        
+        return stats
     
     def __enter__(self):
         """Context manager support"""

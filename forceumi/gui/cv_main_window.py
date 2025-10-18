@@ -7,6 +7,7 @@ Uses OpenCV's highgui module to avoid Qt conflicts with opencv-python.
 import sys
 import time
 import logging
+import cv2
 from pathlib import Path
 from typing import Optional
 
@@ -57,7 +58,8 @@ class CVMainWindow:
             force_sensor=self.force_sensor,
             save_dir=data_config.get("save_dir", "./data"),
             auto_save=data_config.get("auto_save", True),
-            max_fps=collector_config.get("max_fps", 30.0)
+            max_fps=collector_config.get("max_fps", 30.0),
+            warmup_duration=collector_config.get("warmup_duration", 2.0)
         )
         
         # Initialize visualizer
@@ -141,9 +143,27 @@ class CVMainWindow:
         frame_data = self.collector.get_latest_frame(timeout=0.001)
         
         if frame_data:
-            # Update image viewer
+            # Check if warming up
+            is_warming_up = frame_data.get("_warming_up", False)
+            
+            # Update image viewer with warmup indicator
             if "image" in frame_data:
-                self.visualizer.update_image(frame_data["image"])
+                image = frame_data["image"].copy()
+                
+                # Add warmup indicator to image
+                if is_warming_up:
+                    stats = self.collector.get_episode_stats()
+                    warmup_remaining = stats.get("warmup_remaining", 0.0)
+                    
+                    # Add orange "WARMING UP" text
+                    overlay = image.copy()
+                    cv2.rectangle(overlay, (10, 70), (280, 110), (0, 100, 255), -1)
+                    cv2.addWeighted(overlay, 0.5, image, 0.5, 0, image)
+                    
+                    cv2.putText(image, f"WARMING UP ({warmup_remaining:.1f}s)", (20, 95),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 255), 2)
+                
+                self.visualizer.update_image(image)
             
             # Update force viewer
             if "force" in frame_data:
@@ -156,6 +176,21 @@ class CVMainWindow:
         # Update stats
         if self.collector.is_collecting():
             stats = self.collector.get_episode_stats()
+            
+            # Check if warming up
+            is_warming_up = stats.get("warming_up", False)
+            warmup_remaining = stats.get("warmup_remaining", 0.0)
+            
+            # Log warmup status
+            if is_warming_up and not hasattr(self, '_last_warmup_log'):
+                self.logger.info(f"Warming up sensors... ({warmup_remaining:.1f}s remaining)")
+                self._last_warmup_log = time.time()
+            elif is_warming_up and time.time() - self._last_warmup_log > 1.0:
+                self.logger.info(f"Warming up... ({warmup_remaining:.1f}s remaining)")
+                self._last_warmup_log = time.time()
+            elif not is_warming_up and hasattr(self, '_last_warmup_log'):
+                delattr(self, '_last_warmup_log')
+            
             self.visualizer.update_status(
                 is_collecting=True,
                 is_connected=True,

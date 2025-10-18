@@ -43,6 +43,7 @@ class Config:
         },
         "collector": {
             "max_fps": 20.0,
+            "warmup_duration": 2.0,  # 预热时间（秒），在正式采集前读取但不保存数据
         },
         "gui": {
             "window_title": "ForceUMI Data Collection",
