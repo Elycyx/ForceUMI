@@ -33,6 +33,15 @@ All notable changes to the ForceUMI project will be documented in this file.
   - Detect frame interval outliers
   - Verify data shapes
 
+- **Episode Replay System** (`forceumi/replay/`):
+  - Visualize previously collected episodes with synchronized playback
+  - Three-window display: image, force/torque plots, state/action plots
+  - Playback controls: play/pause, speed adjustment (0.1x-10x), frame stepping
+  - Navigation: seek to start/end, jump to specific frame
+  - Loop mode support
+  - Command-line tool: `forceumi-replay`
+  - Example script: `examples/replay_episode.py`
+
 ### Improved
 - **Pose Sensor Reading**: 
   - Added retry mechanism for transient failures

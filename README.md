@@ -112,6 +112,33 @@ print(f"Timestamps: {data['timestamp'].shape}")
 print(f"Metadata: {data['metadata']}")
 ```
 
+### 4. Replay Collected Episodes
+
+Visualize previously collected episodes with synchronized playback:
+
+```bash
+# Using the command-line tool
+forceumi-replay data/episode_20250101_120000.hdf5
+
+# Or using Python script
+python examples/replay_episode.py data/episode_20250101_120000.hdf5
+```
+
+**Keyboard Controls:**
+- `Space` - Play/Pause
+- `Left/Right Arrow` - Step backward/forward (1 frame)
+- `Up/Down Arrow` - Increase/decrease playback speed
+- `Home` - Jump to start
+- `End` - Jump to end
+- `L` - Toggle loop
+- `H` - Toggle help display
+- `Q` or `ESC` - Quit
+
+The replay window shows:
+- **Main image display** with playback controls and status
+- **Force/Torque plots** showing the 6-axis sensor data history
+- **State/Action plots** showing pose and motion data
+
 ## Data Format
 
 Each episode is saved as an HDF5 file with the following structure:
@@ -199,6 +226,10 @@ forceumi/
 │   │   ├── __init__.py
 │   │   ├── cv_main_window.py
 │   │   └── cv_visualizer.py
+│   ├── replay/           # Episode replay
+│   │   ├── __init__.py
+│   │   ├── player.py     # Episode player
+│   │   └── replay_window.py  # Replay GUI
 │   ├── utils/            # Utility functions
 │   │   ├── __init__.py
 │   │   └── transforms.py # Coordinate transformations

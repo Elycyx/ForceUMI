@@ -27,6 +27,7 @@ setup(
     entry_points={
         "console_scripts": [
             "forceumi-collect=forceumi.gui.cv_main_window:main",
+            "forceumi-replay=forceumi.replay.replay_window:main",
         ],
     },
 )
