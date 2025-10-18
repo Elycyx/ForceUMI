@@ -61,8 +61,9 @@ class HDF5Manager:
             
             # Save to HDF5
             with h5py.File(filepath, "w") as f:
-                # Save datasets
-                for key in ["image", "state", "action", "force", "timestamp"]:
+                # Save main datasets
+                main_keys = ["image", "state", "action", "force", "timestamp"]
+                for key in main_keys:
                     if key in data and len(data[key]) > 0:
                         arr = data[key]
                         
@@ -83,6 +84,16 @@ class HDF5Manager:
                                 compression=self.compression,
                                 compression_opts=self.compression_level
                             )
+                
+                # Save per-sensor timestamps (v0.3.1+)
+                for ts_key in ["timestamp_camera", "timestamp_pose", "timestamp_force"]:
+                    if ts_key in data and len(data[ts_key]) > 0:
+                        f.create_dataset(
+                            ts_key,
+                            data=data[ts_key],
+                            compression=self.compression,
+                            compression_opts=self.compression_level
+                        )
                 
                 # Save metadata as attributes
                 if "metadata" in data:
@@ -116,12 +127,17 @@ class HDF5Manager:
             data = {}
             
             with h5py.File(filepath, "r") as f:
-                # Load datasets
+                # Load main datasets
                 for key in ["image", "state", "action", "force", "timestamp"]:
                     if key in f:
                         data[key] = f[key][:]
                     else:
                         data[key] = np.array([])
+                
+                # Load per-sensor timestamps (v0.3.1+)
+                for ts_key in ["timestamp_camera", "timestamp_pose", "timestamp_force"]:
+                    if ts_key in f:
+                        data[ts_key] = f[ts_key][:]
                 
                 # Load metadata
                 metadata = {}
@@ -157,7 +173,8 @@ class HDF5Manager:
             
             with h5py.File(filepath, "r") as f:
                 # Get dataset shapes
-                for key in ["image", "state", "action", "force", "timestamp"]:
+                for key in ["image", "state", "action", "force", "timestamp", 
+                           "timestamp_camera", "timestamp_pose", "timestamp_force"]:
                     if key in f:
                         info[f"{key}_shape"] = f[key].shape
                 
