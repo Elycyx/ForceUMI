@@ -18,7 +18,7 @@ class Config:
         "devices": {
             "camera": {
                 "device_id": 6,
-                "width": 480,
+                "width": 640,
                 "height": 480,
                 "fps": 20,
             },
@@ -32,7 +32,7 @@ class Config:
                 # PyForce (Sunrise sensor) configuration
                 "ip_addr": "192.168.0.108",  # Force sensor IP address
                 "port": 4008,  # Force sensor TCP port
-                "sample_rate": 100,  # Optional: sampling rate in Hz (10-1000)
+                "sample_rate": 50,  # Optional: sampling rate in Hz (10-1000)
             },
         },
         "data": {
@@ -46,9 +46,9 @@ class Config:
         },
         "gui": {
             "window_title": "ForceUMI Data Collection",
-            "image_display_size": [480, 480],
+            "image_display_size": [640, 480],
             "force_plot_length": 500,
-            "update_interval": 50,  # milliseconds (~30 fps)
+            "update_interval": 50,  # milliseconds (~20 fps)
         },
     }
     
