@@ -64,7 +64,7 @@ class DataCollector:
         self._reference_pose = None
         
         # Data queue for thread communication
-        self._data_queue = queue.Queue(maxsize=100)
+        self._data_queue = queue.Queue(maxsize=1)
         
         # Callbacks
         self._frame_callbacks = []
@@ -230,8 +230,8 @@ class DataCollector:
             # Camera with timestamp
             timestamp_camera = None
             if self.camera and self.camera.is_connected():
+                timestamp_camera = time.time()  # ✅ 
                 image = self.camera.read()
-                timestamp_camera = time.time()
                 if image is not None:
                     frame_data["image"] = image
                     frame_data["timestamp_camera"] = timestamp_camera
@@ -308,20 +308,43 @@ class DataCollector:
             if sleep_time > 0:
                 time.sleep(sleep_time)
     
+    # def get_latest_frame(self, timeout: float = 0.1) -> Optional[Dict[str, Any]]:
+    #     """
+    #     Get latest frame data from queue
+        
+    #     Args:
+    #         timeout: Timeout in seconds
+            
+    #     Returns:
+    #         dict: Frame data or None if no data available
+    #     """
+    #     try:
+    #         return self._data_queue.get(timeout=timeout)
+    #     except queue.Empty:
+    #         return None
+
     def get_latest_frame(self, timeout: float = 0.1) -> Optional[Dict[str, Any]]:
         """
-        Get latest frame data from queue
+        Get latest frame data from queue (clears old frames)
         
         Args:
             timeout: Timeout in seconds
             
         Returns:
-            dict: Frame data or None if no data available
+            dict: Latest frame data or None if no data available
         """
+        latest_frame = None
         try:
-            return self._data_queue.get(timeout=timeout)
-        except queue.Empty:
+            # Get all frames and keep only the latest one
+            while True:
+                try:
+                    latest_frame = self._data_queue.get_nowait()
+                except queue.Empty:
+                    break
+            return latest_frame
+        except Exception:
             return None
+
     
     def add_frame_callback(self, callback: Callable[[Dict[str, Any]], None]):
         """

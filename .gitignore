@@ -36,6 +36,7 @@ ENV/
 *.hdf5
 *.h5
 .data/
+data/*.png
 .datasets/
 logs/
 

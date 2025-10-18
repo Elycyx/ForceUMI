@@ -32,7 +32,7 @@ class Config:
                 # PyForce (Sunrise sensor) configuration
                 "ip_addr": "192.168.0.108",  # Force sensor IP address
                 "port": 4008,  # Force sensor TCP port
-                "sample_rate": 30,  # Optional: sampling rate in Hz (10-1000)
+                "sample_rate": 60,  # Optional: sampling rate in Hz (10-1000)
             },
         },
         "data": {
