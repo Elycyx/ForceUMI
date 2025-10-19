@@ -158,6 +158,31 @@ This tool provides:
 - Timing jitter statistics
 - Visualization plots of timestamp quality
 
+## Data Organization
+
+### Session-Based Storage (v0.3.2+)
+
+Episodes are organized by session for better data management:
+
+```
+data/
+├── session_20250118_143000/
+│   ├── episode0.hdf5
+│   ├── episode1.hdf5
+│   ├── episode2.hdf5
+│   └── ...
+├── session_20250118_150530/
+│   ├── episode0.hdf5
+│   └── ...
+└── ...
+```
+
+- **Session**: Created when you first start collecting in a program run
+- **Episodes**: Numbered sequentially within each session (episode0, episode1, ...)
+- **Benefits**: Easy to identify and batch process episodes from the same data collection session
+
+See [Session Organization Guide](SESSION_ORGANIZATION.md) for details.
+
 ## Data Format
 
 Each episode is saved as an HDF5 file with the following structure:

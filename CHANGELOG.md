@@ -2,6 +2,20 @@
 
 All notable changes to the ForceUMI project will be documented in this file.
 
+## [0.3.2] - 2025-10-19
+
+### Changed
+- **Session-Based Episode Organization**:
+  - Episodes now saved in session directories: `data/session_TIMESTAMP/episode0.hdf5, episode1.hdf5, ...`
+  - Session created on first episode start of each program run
+  - Episode counter auto-increments within session
+  - Easier to manage and batch process related episodes
+  - Backward compatible: old episode files still work
+
+### Added
+- `SESSION_ORGANIZATION.md` - Complete guide to new session-based organization
+- Session metadata in each episode (session_dir, episode_number)
+
 ## [0.3.1] - 2025-10-18
 
 ### Added

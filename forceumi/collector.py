@@ -69,6 +69,10 @@ class DataCollector:
         # Callbacks
         self._frame_callbacks = []
         
+        # Session management (organize episodes by session)
+        self._session_dir = None
+        self._episode_counter = 0
+        
         # Create save directory
         self.save_dir.mkdir(parents=True, exist_ok=True)
     
@@ -128,10 +132,23 @@ class DataCollector:
             self.logger.warning("Already collecting data")
             return False
         
+        # Create session directory on first episode of this run
+        if self._session_dir is None:
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self._session_dir = self.save_dir / f"session_{timestamp}"
+            self._session_dir.mkdir(parents=True, exist_ok=True)
+            self._episode_counter = 0
+            self.logger.info(f"Created new session directory: {self._session_dir}")
+        
         # Create new episode
         self.current_episode = Episode()
         if metadata:
             self.current_episode.metadata.update(metadata)
+        
+        # Add session info to metadata
+        self.current_episode.metadata['session_dir'] = str(self._session_dir)
+        self.current_episode.metadata['episode_number'] = self._episode_counter
         
         # Reset reference pose for new episode
         self._reference_pose = None
@@ -144,7 +161,7 @@ class DataCollector:
         self._collection_thread = threading.Thread(target=self._collection_loop, daemon=True)
         self._collection_thread.start()
         
-        self.logger.info(f"Episode collection started (warmup: {self.warmup_duration}s)")
+        self.logger.info(f"Episode {self._episode_counter} collection started (warmup: {self.warmup_duration}s)")
         return True
     
     def stop_episode(self, save: Optional[bool] = None) -> Optional[str]:
@@ -185,8 +202,10 @@ class DataCollector:
         """
         Save current episode to HDF5 file
         
+        Episodes are saved in a session directory as episode0.hdf5, episode1.hdf5, etc.
+        
         Args:
-            filepath: Optional custom filepath
+            filepath: Optional custom filepath (overrides session organization)
             
         Returns:
             str: Path to saved file or None if save failed
@@ -195,15 +214,28 @@ class DataCollector:
             self.logger.warning("No episode to save")
             return None
         
+        # Finalize episode if not already done
+        if self.current_episode.end_time is None:
+            self.current_episode.finalize()
+        
+        # Generate filepath if not provided
         if filepath is None:
-            filename = HDF5Manager.generate_filename()
-            filepath = str(self.save_dir / filename)
+            if self._session_dir is None:
+                # Fallback to old behavior if no session (shouldn't happen normally)
+                self.logger.warning("No session directory, using timestamped filename")
+                filename = HDF5Manager.generate_filename()
+                filepath = str(self.save_dir / filename)
+            else:
+                # Use session directory with episode number
+                filename = f"episode{self._episode_counter}.hdf5"
+                filepath = str(self._session_dir / filename)
         
         data = self.current_episode.to_dict()
         success = self.hdf5_manager.save_episode(filepath, data)
         
         if success:
-            self.logger.info(f"Episode saved to {filepath}")
+            self.logger.info(f"Episode {self._episode_counter} saved to {filepath}")
+            self._episode_counter += 1  # Increment for next episode
             return filepath
         else:
             self.logger.error("Failed to save episode")
