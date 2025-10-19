@@ -12,8 +12,16 @@ All notable changes to the ForceUMI project will be documented in this file.
   - Easier to manage and batch process related episodes
   - Backward compatible: old episode files still work
 
+### Fixed
+- **Replay Speed Accuracy**:
+  - Now uses actual timestamps from data instead of just metadata FPS
+  - Corrected timing accumulation to prevent drift
+  - Added resync mechanism for consistent playback
+  - Replay speed now accurately matches original recording speed
+
 ### Added
-- `SESSION_ORGANIZATION.md` - Complete guide to new session-based organization
+- `test_replay_speed.py` - Tool to verify replay speed accuracy
+- `examples/list_sessions.py` - Browse and analyze session data
 - Session metadata in each episode (session_dir, episode_number)
 
 ## [0.3.1] - 2025-10-18

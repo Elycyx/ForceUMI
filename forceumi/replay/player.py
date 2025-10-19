@@ -247,6 +247,8 @@ class EpisodePlayer:
         Should be called regularly (e.g., in GUI update loop).
         Returns frame data if a new frame should be displayed, None otherwise.
         
+        Uses actual timestamps for accurate playback timing.
+        
         Returns:
             Frame data dict if new frame ready, None otherwise
         """
@@ -256,12 +258,23 @@ class EpisodePlayer:
         current_time = time.time()
         elapsed = current_time - self.last_frame_time
         
-        # Calculate frame interval based on FPS and speed
-        frame_interval = (1.0 / self.target_fps) / self.playback_speed
+        # Calculate required interval based on actual timestamps (if available)
+        if self.timestamps is not None and self.current_frame < len(self.timestamps) - 1:
+            # Use actual timestamp difference for accurate playback
+            actual_interval = self.timestamps[self.current_frame + 1] - self.timestamps[self.current_frame]
+            frame_interval = actual_interval / self.playback_speed
+        else:
+            # Fallback to FPS-based interval
+            frame_interval = (1.0 / self.target_fps) / self.playback_speed
         
         if elapsed >= frame_interval:
             # Time to advance to next frame
-            self.last_frame_time = current_time
+            # Use += instead of = to avoid accumulating timing drift
+            self.last_frame_time += frame_interval
+            
+            # If we've fallen too far behind, resync
+            if current_time - self.last_frame_time > frame_interval * 2:
+                self.last_frame_time = current_time
             
             frame_data = self.get_frame(self.current_frame)
             
@@ -272,6 +285,7 @@ class EpisodePlayer:
             if self.current_frame >= self.total_frames:
                 if self.loop:
                     self.current_frame = 0
+                    self.last_frame_time = time.time()  # Reset timing for loop
                     self.logger.debug("Looping back to start")
                 else:
                     self.pause()
