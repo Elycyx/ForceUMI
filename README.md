@@ -15,6 +15,8 @@ ForceUMI is a comprehensive data collection system for robotic arm devices, supp
 ### From Source
 
 ```bash
+conda create -n forceumi python=3.10
+conda activate forceumi
 git clone https://github.com/Elycyx/ForceUMI.git
 cd ForceUMI
 pip install -e .
@@ -22,7 +24,7 @@ pip install -e .
 
 This will install the package in editable mode along with all dependencies.
 
-### Optional: Hardware Support
+### Hardware Support
 
 **For VR tracker-based pose sensing** (using PyTracker):
 
