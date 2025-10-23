@@ -6,10 +6,68 @@ Provides functions for 3D pose transformations, including:
 - Quaternion <-> Rotation matrix conversions  
 - Relative pose calculations
 - Pose transformations
+- Coordinate frame alignment
 """
 
 import numpy as np
 from typing import Tuple, Optional
+
+
+def rotate_frame_z_90_cw(pose: np.ndarray, preserve_gripper: bool = True) -> np.ndarray:
+    """
+    Rotate pose frame 90 degrees clockwise around z-axis (viewed from +z).
+    
+    This aligns the coordinate system with the force sensor coordinate system.
+    
+    Transformation (for position and orientation):
+    - new_x = old_y
+    - new_y = -old_x
+    - new_z = old_z
+    
+    Args:
+        pose: 7D pose [x, y, z, rx, ry, rz, gripper] with angles in radians
+        preserve_gripper: If True, keep gripper value unchanged
+    
+    Returns:
+        Transformed 7D pose in the rotated frame
+    """
+    result = pose.copy()
+    
+    # Position transformation: rotate point 90° CW around z-axis
+    x, y, z = pose[0], pose[1], pose[2]
+    result[0] = y      # new_x = old_y
+    result[1] = -x     # new_y = -old_x
+    result[2] = z      # new_z = old_z (unchanged)
+    
+    # Orientation transformation
+    # Convert Euler angles to rotation matrix
+    R = euler_to_matrix(pose[3], pose[4], pose[5])
+    
+    # Z-axis rotation matrix (90° clockwise = -90° = 270°)
+    # When viewed from +z, clockwise means negative rotation
+    theta = -np.pi / 2  # -90 degrees
+    R_z_90cw = np.array([
+        [np.cos(theta), -np.sin(theta), 0],
+        [np.sin(theta),  np.cos(theta), 0],
+        [0,              0,              1]
+    ])
+    # Which simplifies to:
+    # R_z_90cw = [[0, 1, 0],
+    #             [-1, 0, 0],
+    #             [0, 0, 1]]
+    
+    # Apply rotation: R_new = R_z_90cw @ R
+    R_new = R_z_90cw @ R
+    
+    # Convert back to Euler angles
+    euler_new = matrix_to_euler(R_new)
+    result[3:6] = euler_new
+    
+    # Gripper unchanged (always absolute)
+    if preserve_gripper:
+        result[6] = pose[6]
+    
+    return result
 
 
 def euler_to_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:

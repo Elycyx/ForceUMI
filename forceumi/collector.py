@@ -13,7 +13,7 @@ from typing import Optional, Dict, Any, Callable
 
 from forceumi.devices import Camera, PoseSensor, ForceSensor
 from forceumi.data import Episode, HDF5Manager
-from forceumi.utils.transforms import relative_pose
+from forceumi.utils.transforms import relative_pose, rotate_frame_z_90_cw
 
 
 class DataCollector:
@@ -287,11 +287,19 @@ class DataCollector:
                             action = state.copy()
                             action[:6] = 0.0  # Zero position and orientation
                             # Keep gripper value (always absolute)
+                            
+                            # Rotate to force sensor coordinate frame
+                            action = rotate_frame_z_90_cw(action, preserve_gripper=True)
+                            
                             frame_data["action"] = action
                             self.logger.info(f"Reference pose set (after warmup): {self._reference_pose[:6]}")
                         else:
                             # Subsequent frames: compute relative pose
                             action = relative_pose(state, self._reference_pose, preserve_gripper=True)
+                            
+                            # Rotate to force sensor coordinate frame (90° CW around z)
+                            action = rotate_frame_z_90_cw(action, preserve_gripper=True)
+                            
                             frame_data["action"] = action
                     # During warmup, don't set action (will not be saved anyway)
             

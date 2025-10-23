@@ -4,7 +4,14 @@ All notable changes to the ForceUMI project will be documented in this file.
 
 ## [0.3.2] - 2025-10-19
 
-### Changed
+### Changed (BREAKING)
+- **Coordinate Frame Alignment**:
+  - Action data now rotated 90° CW around z-axis to align with force sensor frame
+  - Transformation: `new_x = old_y`, `new_y = -old_x`, `new_z = old_z`
+  - Makes action and force data directly comparable in same coordinate system
+  - State data unchanged (still in tracker frame)
+  - See `COORDINATE_FRAME_ALIGNMENT.md` for details
+
 - **Session-Based Episode Organization**:
   - Episodes now saved in session directories: `data/session_TIMESTAMP/episode0.hdf5, episode1.hdf5, ...`
   - Session created on first episode start of each program run
@@ -20,7 +27,9 @@ All notable changes to the ForceUMI project will be documented in this file.
   - Replay speed now accurately matches original recording speed
 
 ### Added
-- `test_replay_speed.py` - Tool to verify replay speed accuracy
+- `rotate_frame_z_90_cw()` - Coordinate frame rotation function
+- `COORDINATE_FRAME_ALIGNMENT.md` - Complete guide to coordinate alignment
+- `test_coordinate_alignment.py` - Test and verify coordinate transformation
 - `examples/list_sessions.py` - Browse and analyze session data
 - Session metadata in each episode (session_dir, episode_number)
 
