@@ -17,7 +17,7 @@ from forceumi.utils.transforms import relative_pose, rotate_frame_z_90_cw, rotat
 
 # Choose rotation direction to align action with force sensor
 # Use rotate_frame_z_90_cw for clockwise or rotate_frame_z_90_ccw for counter-clockwise
-rotate_to_force_frame = rotate_frame_z_90_cw  # Change this if needed
+rotate_to_force_frame = rotate_frame_z_90_ccw  # Change this if needed
 
 
 class DataCollector:
