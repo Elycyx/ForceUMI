@@ -13,7 +13,11 @@ from typing import Optional, Dict, Any, Callable
 
 from forceumi.devices import Camera, PoseSensor, ForceSensor
 from forceumi.data import Episode, HDF5Manager
-from forceumi.utils.transforms import relative_pose, rotate_frame_z_90_cw
+from forceumi.utils.transforms import relative_pose, rotate_frame_z_90_cw, rotate_frame_z_90_ccw
+
+# Choose rotation direction to align action with force sensor
+# Use rotate_frame_z_90_cw for clockwise or rotate_frame_z_90_ccw for counter-clockwise
+rotate_to_force_frame = rotate_frame_z_90_cw  # Change this if needed
 
 
 class DataCollector:
@@ -271,7 +275,7 @@ class DataCollector:
             # Pose sensor with timestamp
             timestamp_pose = None
             if self.pose_sensor and self.pose_sensor.is_connected():
-                state = self.pose_sensor.read()
+                state = self.pose_sensor.read() # [x, y, z, rx, ry, rz, gripper]
                 timestamp_pose = time.time()
                 if state is not None:
                     frame_data["state"] = state
@@ -289,7 +293,7 @@ class DataCollector:
                             # Keep gripper value (always absolute)
                             
                             # Rotate to force sensor coordinate frame
-                            action = rotate_frame_z_90_cw(action, preserve_gripper=True)
+                            action = rotate_to_force_frame(action, preserve_gripper=True)
                             
                             frame_data["action"] = action
                             self.logger.info(f"Reference pose set (after warmup): {self._reference_pose[:6]}")
@@ -297,8 +301,8 @@ class DataCollector:
                             # Subsequent frames: compute relative pose
                             action = relative_pose(state, self._reference_pose, preserve_gripper=True)
                             
-                            # Rotate to force sensor coordinate frame (90° CW around z)
-                            action = rotate_frame_z_90_cw(action, preserve_gripper=True)
+                            # Rotate to force sensor coordinate frame
+                            action = rotate_to_force_frame(action, preserve_gripper=True)
                             
                             frame_data["action"] = action
                     # During warmup, don't set action (will not be saved anyway)

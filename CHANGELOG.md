@@ -6,11 +6,13 @@ All notable changes to the ForceUMI project will be documented in this file.
 
 ### Changed (BREAKING)
 - **Coordinate Frame Alignment**:
-  - Action data now rotated 90° CW around z-axis to align with force sensor frame
-  - Transformation: `new_x = old_y`, `new_y = -old_x`, `new_z = old_z`
+  - Action data now rotated 90° around z-axis to align with force sensor frame
+  - Two rotation options: CW (`rotate_frame_z_90_cw`) or CCW (`rotate_frame_z_90_ccw`)
+  - Default: Clockwise rotation - `new_x = old_y`, `new_y = -old_x`, `new_z = old_z`
+  - Easy to switch: change `rotate_to_force_frame` variable in `collector.py`
   - Makes action and force data directly comparable in same coordinate system
   - State data unchanged (still in tracker frame)
-  - See `COORDINATE_FRAME_ALIGNMENT.md` for details
+  - See `ROTATION_DIRECTION_GUIDE.md` for choosing the right direction
 
 - **Session-Based Episode Organization**:
   - Episodes now saved in session directories: `data/session_TIMESTAMP/episode0.hdf5, episode1.hdf5, ...`
@@ -27,9 +29,9 @@ All notable changes to the ForceUMI project will be documented in this file.
   - Replay speed now accurately matches original recording speed
 
 ### Added
-- `rotate_frame_z_90_cw()` - Coordinate frame rotation function
-- `COORDINATE_FRAME_ALIGNMENT.md` - Complete guide to coordinate alignment
-- `test_coordinate_alignment.py` - Test and verify coordinate transformation
+- `rotate_frame_z_90_cw()` - Clockwise 90° rotation around z-axis
+- `rotate_frame_z_90_ccw()` - Counter-clockwise 90° rotation around z-axis  
+- `ROTATION_DIRECTION_GUIDE.md` - Guide for choosing correct rotation direction
 - `examples/list_sessions.py` - Browse and analyze session data
 - Session metadata in each episode (session_dir, episode_number)
 
