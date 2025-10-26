@@ -31,7 +31,15 @@ All notable changes to the ForceUMI project will be documented in this file.
 ### Added
 - `rotate_frame_z_90_cw()` - Clockwise 90° rotation around z-axis
 - `rotate_frame_z_90_ccw()` - Counter-clockwise 90° rotation around z-axis  
-- `ROTATION_DIRECTION_GUIDE.md` - Guide for choosing correct rotation direction
+- **LeRobot Dataset Conversion**:
+  - `convert_forceumi_to_lerobot.py` - Convert ForceUMI data to LeRobot format
+  - Support for both flat and session-based directory structures
+  - Image resizing option for faster training
+  - Skip frames option to remove unstable warmup data
+  - Push to HuggingFace Hub support
+  - `docs/LEROBOT_CONVERSION.md` - Complete conversion guide
+  - `examples/convert_example.sh` - Conversion examples
+  - `examples/verify_lerobot_dataset.py` - Verify converted datasets
 - `examples/list_sessions.py` - Browse and analyze session data
 - Session metadata in each episode (session_dir, episode_number)
 

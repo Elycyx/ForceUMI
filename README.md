@@ -160,6 +160,35 @@ This tool provides:
 - Timing jitter statistics
 - Visualization plots of timestamp quality
 
+### 6. Convert to LeRobot Format
+
+Convert ForceUMI data to LeRobot format for robot learning:
+
+```bash
+# Install LeRobot (in a separate environment)
+conda create -n lerobot python=3.10
+conda activate lerobot
+pip install lerobot
+
+# Convert a session
+python convert_forceumi_to_lerobot.py \
+  --data_dir data/session_20250118_143000 \
+  --output_repo_id username/forceumi-task1 \
+  --task "Pick and place task" \
+  --target_size 224 224
+
+# Convert and push to HuggingFace Hub
+python convert_forceumi_to_lerobot.py \
+  --data_dir data/session_20250118_143000 \
+  --output_repo_id username/forceumi-task1 \
+  --task "Pick and place task" \
+  --target_size 224 224 \
+  --skip_frames 5 \
+  --push_to_hub
+```
+
+See [LeRobot Conversion Guide](docs/LEROBOT_CONVERSION.md) for complete documentation.
+
 ## Data Organization
 
 ### Session-Based Storage (v0.3.2+)
