@@ -48,5 +48,15 @@ python convert_forceumi_to_lerobot.py \
   --fps 30 \
   --push_to_hub
 
+# Example 6: Fast conversion with parallel processing
+echo -e "\nExample 6: Fast conversion with parallel processing"
+python convert_forceumi_to_lerobot.py \
+  --data_dir data \
+  --output_repo_id username/forceumi-full-fast \
+  --task "Various tasks" \
+  --target_size 224 224 \
+  --num_workers 8 \
+  --parallel_episodes 4
+
 echo -e "\nConversion complete!"
 

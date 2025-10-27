@@ -33,13 +33,19 @@ All notable changes to the ForceUMI project will be documented in this file.
 - `rotate_frame_z_90_ccw()` - Counter-clockwise 90° rotation around z-axis  
 - **LeRobot Dataset Conversion**:
   - `convert_forceumi_to_lerobot.py` - Convert ForceUMI data to LeRobot format
+  - Data mapping: ForceUMI action → LeRobot state, delta computation for LeRobot action
+  - Action computed as delta between consecutive states (gripper remains absolute)
+  - **Parallel processing support** for 5-10x faster conversion:
+    - `--num_workers`: Parallel image processing (default: 4)
+    - `--parallel_episodes`: Parallel episode preprocessing (default: 1)
+    - Typical speedup: 5-10x on multi-core systems
   - Support for both flat and session-based directory structures
   - Image resizing option for faster training
   - Skip frames option to remove unstable warmup data
   - Push to HuggingFace Hub support
-  - `docs/LEROBOT_CONVERSION.md` - Complete conversion guide
+  - Feature names: `observation.state`, `observation.effort`, `observation.images`
+  - `docs/PARALLEL_CONVERSION.md` - Parallel conversion guide and optimization tips
   - `examples/convert_example.sh` - Conversion examples
-  - `examples/verify_lerobot_dataset.py` - Verify converted datasets
 - `examples/list_sessions.py` - Browse and analyze session data
 - Session metadata in each episode (session_dir, episode_number)
 

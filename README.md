@@ -170,12 +170,21 @@ conda create -n lerobot python=3.10
 conda activate lerobot
 pip install lerobot
 
-# Convert a session
+# Convert a session (basic)
 python convert_forceumi_to_lerobot.py \
   --data_dir data/session_20250118_143000 \
   --output_repo_id username/forceumi-task1 \
   --task "Pick and place task" \
   --target_size 224 224
+
+# Fast conversion with parallel processing (5-10x faster)
+python convert_forceumi_to_lerobot.py \
+  --data_dir data/session_20250118_143000 \
+  --output_repo_id username/forceumi-task1 \
+  --task "Pick and place task" \
+  --target_size 224 224 \
+  --num_workers 8 \
+  --parallel_episodes 4
 
 # Convert and push to HuggingFace Hub
 python convert_forceumi_to_lerobot.py \
@@ -184,10 +193,12 @@ python convert_forceumi_to_lerobot.py \
   --task "Pick and place task" \
   --target_size 224 224 \
   --skip_frames 5 \
+  --num_workers 8 \
+  --parallel_episodes 4 \
   --push_to_hub
 ```
 
-See [LeRobot Conversion Guide](docs/LEROBOT_CONVERSION.md) for complete documentation.
+See [LeRobot Conversion Guide](docs/LEROBOT_CONVERSION.md) and [Parallel Conversion Guide](docs/PARALLEL_CONVERSION.md) for complete documentation.
 
 ## Data Organization
 

@@ -6,6 +6,15 @@ Convert ForceUMI data to LeRobot dataset format.
 This script converts HDF5 files collected with ForceUMI to the LeRobot 
 dataset format for training robot policies.
 
+Data Mapping:
+- ForceUMI action → LeRobot observation.state
+- ForceUMI force → LeRobot observation.effort  
+- ForceUMI image → LeRobot observation.images
+- LeRobot action: computed as delta between consecutive states
+  - action[t] = state[t] - state[t-1] for pose (x,y,z,rx,ry,rz)
+  - action[t].gripper = state[t].gripper (absolute value)
+  - action[0] = [0,0,0,0,0,0, gripper] for first frame
+
 NOTE: Please use the lerobot environment for this conversion.
 """
 
@@ -16,6 +25,10 @@ import argparse
 from pathlib import Path
 from tqdm import tqdm
 import cv2
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from functools import partial
+import multiprocessing as mp
+import time
 
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
@@ -60,7 +73,7 @@ def create_forceumi_features(image_shape: tuple, fps: float) -> dict:
                 "gripper",
             ]
         },
-        "observation.force": {
+        "observation.effort": {
             "dtype": "float32",
             "shape": (6,),  # fx,fy,fz,mx,my,mz
             "names": [
@@ -96,18 +109,22 @@ def load_forceumi_episode(hdf5_path: str) -> tuple:
     """
     Load data from a ForceUMI HDF5 episode file.
     
+    Note: ForceUMI action becomes LeRobot state.
+    
     Args:
         hdf5_path: Path to HDF5 file
         
     Returns:
-        tuple: (images, states, actions, forces, metadata)
+        tuple: (images, states, forces, metadata, fps, task)
+              states here are from ForceUMI's action field
     """
     try:
         with h5py.File(hdf5_path, 'r') as f:
             # Load datasets
             images = np.array(f['image'])  # [T, H, W, 3]
-            states = np.array(f['state'])  # [T, 7]
-            actions = np.array(f['action'])  # [T, 7]
+            # Use ForceUMI action as LeRobot state
+            states = np.array(f['action'])  # [T, 7]
+            states[:, 5] += np.pi / 2 # make sure the initial orientation is 0
             forces = np.array(f['force'])  # [T, 6]
             
             # Load metadata
@@ -121,52 +138,115 @@ def load_forceumi_episode(hdf5_path: str) -> tuple:
             fps = metadata.get('fps', 30.0)
             task = metadata.get('task_description', 'unknown_task')
             
-            return images, states, actions, forces, metadata, fps, task
+            return images, states, forces, metadata, fps, task
             
     except Exception as e:
         print(f"Error loading {hdf5_path}: {e}")
-        return None, None, None, None, None, None, None
+        return None, None, None, None, None, None
+
+
+def compute_delta_actions(states: np.ndarray) -> np.ndarray:
+    """
+    Compute delta actions from states.
+    
+    Action at time t = state[t] - state[t-1]
+    For the first frame, action = zeros (no previous frame)
+    Gripper value remains absolute (copied from current state)
+    
+    Args:
+        states: State array [T, 7] where each row is [x, y, z, rx, ry, rz, gripper]
+        
+    Returns:
+        actions: Action array [T, 7] with delta pose and absolute gripper
+    """
+    T = states.shape[0]
+    actions = np.zeros_like(states)
+    
+    # First frame: action is zero for pose, absolute for gripper
+    actions[0, :6] = 0.0
+    actions[0, 6] = states[0, 6]  # Gripper is absolute
+    
+    # Subsequent frames: compute delta
+    for t in range(1, T):
+        actions[t, :6] = states[t, :6] - states[t-1, :6]  # Delta pose
+        actions[t, 6] = states[t, 6]  # Gripper remains absolute
+    
+    return actions
+
+
+def resize_image_batch(image_batch: np.ndarray, target_size: tuple) -> np.ndarray:
+    """
+    Resize a batch of images (for parallel processing).
+    
+    Args:
+        image_batch: Batch of images [batch_size, H, W, C]
+        target_size: Target size (H, W)
+        
+    Returns:
+        Resized images
+    """
+    target_H, target_W = target_size
+    batch_size = image_batch.shape[0]
+    C = image_batch.shape[3]
+    
+    resized = np.zeros((batch_size, target_H, target_W, C), dtype=image_batch.dtype)
+    for i in range(batch_size):
+        resized[i] = cv2.resize(
+            image_batch[i],
+            (target_W, target_H),
+            interpolation=cv2.INTER_LINEAR
+        )
+    return resized
 
 
 def preprocess_forceumi_data(images: np.ndarray, 
                              states: np.ndarray, 
-                             actions: np.ndarray,
                              forces: np.ndarray,
-                             target_size: tuple = None) -> tuple:
+                             target_size: tuple = None,
+                             num_workers: int = 4) -> tuple:
     """
-    Preprocess ForceUMI data for LeRobot format.
+    Preprocess ForceUMI data for LeRobot format with parallel image processing.
     
     Args:
         images: Image array [T, H, W, 3]
-        states: State array [T, 7]
-        actions: Action array [T, 7]
+        states: State array [T, 7] (from ForceUMI action field)
         forces: Force array [T, 6]
         target_size: Optional target size for images (H, W)
+        num_workers: Number of parallel workers for image processing
         
     Returns:
         tuple: Preprocessed (images, states, actions, forces)
     """
     # Ensure float32 type
     states = states.astype(np.float32)
-    actions = actions.astype(np.float32)
     forces = forces.astype(np.float32)
     
-    # Resize images if needed
+    # Compute delta actions from states
+    actions = compute_delta_actions(states)
+    
+    # Resize images if needed (with parallel processing)
     if target_size is not None and images is not None:
         T, H, W, C = images.shape
         target_H, target_W = target_size
         
         if (H, W) != (target_H, target_W):
-            print(f"Resizing images from {H}x{W} to {target_H}x{target_W}")
-            resized_images = np.zeros((T, target_H, target_W, C), dtype=images.dtype)
+            print(f"Resizing {T} images from {H}x{W} to {target_H}x{target_W} using {num_workers} workers...")
             
-            for t in range(T):
-                resized_images[t] = cv2.resize(
-                    images[t], 
-                    (target_W, target_H),
-                    interpolation=cv2.INTER_LINEAR
-                )
-            images = resized_images
+            # Split images into batches for parallel processing
+            batch_size = max(1, T // (num_workers * 4))  # Create more batches than workers
+            batches = []
+            for i in range(0, T, batch_size):
+                batches.append(images[i:min(i+batch_size, T)])
+            
+            # Process batches in parallel
+            resize_func = partial(resize_image_batch, target_size=target_size)
+            
+            with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                resized_batches = list(executor.map(resize_func, batches))
+            
+            # Concatenate results
+            images = np.concatenate(resized_batches, axis=0)
+            print(f"✓ Resized {T} images")
     
     # Ensure images are uint8
     if images is not None:
@@ -176,14 +256,81 @@ def preprocess_forceumi_data(images: np.ndarray,
     return images, states, actions, forces
 
 
+def _preprocess_episode_wrapper(args: tuple) -> dict:
+    """
+    Wrapper function for parallel processing (must be top-level for pickle).
+    
+    Args:
+        args: Tuple of (hdf5_path, episode_name, skip_frames, target_image_size, num_workers)
+        
+    Returns:
+        Preprocessed episode data dict or None
+    """
+    return load_and_preprocess_episode(*args)
+
+
+def load_and_preprocess_episode(hdf5_path: str,
+                               episode_name: str,
+                               skip_frames: int,
+                               target_image_size: tuple,
+                               num_workers: int) -> dict:
+    """
+    Load and preprocess a single episode (for parallel processing).
+    
+    Args:
+        hdf5_path: Path to HDF5 file
+        episode_name: Episode name
+        skip_frames: Number of frames to skip
+        target_image_size: Target image size
+        num_workers: Number of workers for image processing
+        
+    Returns:
+        dict with preprocessed data or None if failed
+    """
+    # Load episode data
+    images, states, forces, metadata, fps, task = load_forceumi_episode(hdf5_path)
+    
+    if images is None:
+        return None
+    
+    # Preprocess data
+    images, states, actions, forces = preprocess_forceumi_data(
+        images, states, forces, target_image_size, num_workers
+    )
+    
+    # Verify data consistency
+    T = images.shape[0]
+    if not (states.shape[0] == T and actions.shape[0] == T and forces.shape[0] == T):
+        return None
+    
+    # Apply skip_frames
+    start_frame = max(skip_frames, 0)
+    
+    return {
+        'episode_name': episode_name,
+        'images': images[start_frame:],
+        'states': states[start_frame:],
+        'actions': actions[start_frame:],
+        'forces': forces[start_frame:],
+        'task': task,
+        'fps': fps,
+        'metadata': metadata,
+    }
+
+
 def process_forceumi_episode(dataset: LeRobotDataset, 
                              task: str, 
                              hdf5_path: str,
                              episode_name: str,
                              skip_frames: int = 0,
-                             target_image_size: tuple = None) -> bool:
+                             target_image_size: tuple = None,
+                             num_workers: int = 4) -> bool:
     """
     Process a single ForceUMI episode and add frames to the dataset.
+    
+    Note: 
+    - ForceUMI action → LeRobot state
+    - LeRobot action = delta between consecutive states (gripper absolute)
     
     Args:
         dataset: LeRobot dataset to add frames to
@@ -192,12 +339,13 @@ def process_forceumi_episode(dataset: LeRobotDataset,
         episode_name: Name of the episode
         skip_frames: Number of initial frames to skip
         target_image_size: Optional target size for images (H, W)
+        num_workers: Number of parallel workers for image processing
         
     Returns:
         bool: True if episode was processed successfully
     """
-    # Load episode data
-    images, states, actions, forces, metadata, fps, task_from_file = \
+    # Load episode data (states are from ForceUMI action field)
+    images, states, forces, metadata, fps, task_from_file = \
         load_forceumi_episode(hdf5_path)
     
     if images is None:
@@ -208,16 +356,16 @@ def process_forceumi_episode(dataset: LeRobotDataset,
     if task == "unknown_task" and task_from_file != "unknown_task":
         task = task_from_file
     
-    # Preprocess data
+    # Preprocess data (this also computes delta actions, with parallel image processing)
     images, states, actions, forces = preprocess_forceumi_data(
-        images, states, actions, forces, target_image_size
+        images, states, forces, target_image_size, num_workers
     )
     
     # Print data shapes
     print(f'Episode {episode_name} data shapes:')
     print(f'  images: {images.shape}')
-    print(f'  states: {states.shape}')
-    print(f'  actions: {actions.shape}')
+    print(f'  states: {states.shape} (from ForceUMI action)')
+    print(f'  actions: {actions.shape} (delta computed)')
     print(f'  forces: {forces.shape}')
     print(f'  fps: {fps}, task: {task}')
     
@@ -237,7 +385,7 @@ def process_forceumi_episode(dataset: LeRobotDataset,
         frame = {
             "action": actions[frame_idx],
             "observation.state": states[frame_idx],
-            "observation.force": forces[frame_idx],
+            "observation.effort": forces[frame_idx],
             "observation.images": images[frame_idx],
         }
         dataset.add_frame(frame=frame, task=task)
@@ -290,10 +438,12 @@ def convert_forceumi_to_lerobot(
     robot_type: str = "forceumi",
     skip_frames: int = 0,
     target_image_size: tuple = None,
-    push_to_hub: bool = False
+    push_to_hub: bool = False,
+    num_workers: int = 4,
+    parallel_episodes: int = 1
 ):
     """
-    Convert ForceUMI HDF5 files to LeRobot dataset format.
+    Convert ForceUMI HDF5 files to LeRobot dataset format with parallel processing.
     
     Args:
         data_dir: Directory containing ForceUMI episodes (flat or session-based)
@@ -304,10 +454,15 @@ def convert_forceumi_to_lerobot(
         skip_frames: Number of initial frames to skip per episode
         target_image_size: Optional target size for images (H, W)
         push_to_hub: Whether to push the dataset to HuggingFace Hub
+        num_workers: Number of parallel workers for image processing (default: 4)
+        parallel_episodes: Number of episodes to preprocess in parallel (default: 1, set to 2-4 for speedup)
     """
+    start_time = time.time()
+    
     print(f"Converting ForceUMI data from {data_dir} to LeRobot format...")
     print(f"Output repository: {output_repo_id}")
     print(f"Task: {task_description}")
+    print(f"Parallel workers: {num_workers} (image processing), {parallel_episodes} (episode loading)")
     
     # Find all episodes
     episode_groups = find_forceumi_episodes(data_dir)
@@ -348,30 +503,87 @@ def convert_forceumi_to_lerobot(
     for session_name, episode_files in episode_groups:
         print(f"\nProcessing session: {session_name}")
         
-        for episode_file in tqdm(episode_files, desc=f"Session {session_name}"):
-            episode_name = episode_file.stem
-            total_episodes += 1
+        if parallel_episodes > 1:
+            # Parallel preprocessing of episodes
+            print(f"Using parallel preprocessing with {parallel_episodes} workers...")
             
-            success = process_forceumi_episode(
-                dataset=dataset,
-                task=task_description,
-                hdf5_path=str(episode_file),
-                episode_name=f"{session_name}/{episode_name}",
-                skip_frames=skip_frames,
-                target_image_size=target_image_size
-            )
+            # Prepare arguments for parallel processing
+            preprocess_args = [
+                (str(episode_file), 
+                 f"{session_name}/{episode_file.stem}",
+                 skip_frames,
+                 target_image_size,
+                 num_workers)
+                for episode_file in episode_files
+            ]
             
-            if success:
+            # Load and preprocess episodes in parallel
+            with ProcessPoolExecutor(max_workers=parallel_episodes) as executor:
+                preprocessed_episodes = list(tqdm(
+                    executor.map(_preprocess_episode_wrapper, preprocess_args),
+                    total=len(episode_files),
+                    desc=f"Loading & preprocessing {session_name}"
+                ))
+            
+            # Add preprocessed episodes to dataset (must be sequential for LeRobot)
+            for episode_data in tqdm(preprocessed_episodes, desc=f"Saving {session_name}"):
+                total_episodes += 1
+                
+                if episode_data is None:
+                    print(f"✗ Skipped episode (preprocessing failed)")
+                    continue
+                
+                # Get task
+                task = task_description
+                if task == "unknown_task" and episode_data['task'] != "unknown_task":
+                    task = episode_data['task']
+                
+                # Add frames to dataset
+                T = episode_data['images'].shape[0]
+                for frame_idx in range(T):
+                    frame = {
+                        "action": episode_data['actions'][frame_idx],
+                        "observation.state": episode_data['states'][frame_idx],
+                        "observation.effort": episode_data['forces'][frame_idx],
+                        "observation.images": episode_data['images'][frame_idx],
+                    }
+                    dataset.add_frame(frame=frame, task=task)
+                
                 successful_episodes += 1
                 dataset.save_episode()
-                print(f"✓ Saved episode {successful_episodes}: {session_name}/{episode_name}")
-            else:
-                print(f"✗ Skipped episode: {session_name}/{episode_name}")
+                print(f"✓ Saved episode {successful_episodes}: {episode_data['episode_name']}")
+        else:
+            # Sequential processing (original method)
+            for episode_file in tqdm(episode_files, desc=f"Session {session_name}"):
+                episode_name = episode_file.stem
+                total_episodes += 1
+                
+                success = process_forceumi_episode(
+                    dataset=dataset,
+                    task=task_description,
+                    hdf5_path=str(episode_file),
+                    episode_name=f"{session_name}/{episode_name}",
+                    skip_frames=skip_frames,
+                    target_image_size=target_image_size,
+                    num_workers=num_workers
+                )
+                
+                if success:
+                    successful_episodes += 1
+                    dataset.save_episode()
+                    print(f"✓ Saved episode {successful_episodes}: {session_name}/{episode_name}")
+                else:
+                    print(f"✗ Skipped episode: {session_name}/{episode_name}")
+    
+    elapsed_time = time.time() - start_time
     
     print(f"\n=== Conversion Summary ===")
     print(f"Total episodes processed: {total_episodes}")
     print(f"Successful episodes: {successful_episodes}")
     print(f"Conversion rate: {successful_episodes/total_episodes*100:.1f}%" if total_episodes > 0 else "No episodes processed")
+    print(f"Total time: {elapsed_time:.1f}s ({elapsed_time/60:.1f} minutes)")
+    if successful_episodes > 0:
+        print(f"Average time per episode: {elapsed_time/successful_episodes:.1f}s")
     
     if successful_episodes > 0:
         print(f"\nDataset created with {successful_episodes} episodes")
@@ -434,6 +646,12 @@ Examples:
                        metavar=("HEIGHT", "WIDTH"),
                        help="Target image size for resizing (e.g., 224 224)")
     
+    # Parallel processing arguments
+    parser.add_argument("--num_workers", type=int, default=8,
+                       help="Number of parallel workers for image processing (default: 4)")
+    parser.add_argument("--parallel_episodes", type=int, default=1,
+                       help="Number of episodes to preprocess in parallel (default: 1, recommended: 2-4)")
+    
     # Output arguments
     parser.add_argument("--push_to_hub", action="store_true",
                        help="Push dataset to HuggingFace Hub after conversion")
@@ -457,7 +675,9 @@ Examples:
         robot_type=args.robot_type,
         skip_frames=args.skip_frames,
         target_image_size=target_size,
-        push_to_hub=args.push_to_hub
+        push_to_hub=args.push_to_hub,
+        num_workers=args.num_workers,
+        parallel_episodes=args.parallel_episodes
     )
 
 
